@@ -1,0 +1,16 @@
+project_id = "el-massar"
+
+[functions.approve-member]
+verify_jwt = false
+
+[functions.reject-application]
+verify_jwt = false
+
+[functions.manage-member]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.setup-super-admin]
+verify_jwt = false

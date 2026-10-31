@@ -1,0 +1,25 @@
+{
+  "projectId": "72545052",
+  "functions": {
+    "approve-member": {
+      "hasChanged": false,
+      "hash": "2cc990c0ec6358a9ede7adcd83f6f72e6b3ce38e296fcac241a4347d1d6d7041"
+    },
+    "manage-member": {
+      "hasChanged": false,
+      "hash": "183c75a37c7fd570c8cc32c086cabfe261bc00719128d1abc24445f2ecb00b10"
+    },
+    "reject-application": {
+      "hasChanged": false,
+      "hash": "0ce72a149c1240a1fa263871fb08ed91420aa146d89a5e20100727466d11b825"
+    },
+    "send-email": {
+      "hasChanged": false,
+      "hash": "9fa0b329a727cf5c31e41cfb01dfd1950a7034928c9a5ff9450b3c9f50a9291c"
+    },
+    "setup-super-admin": {
+      "hasChanged": false,
+      "hash": "b07f417d61bc5cae47bd60dd9bc0043da2109a153afb62f0b19fa8f849e5e002"
+    }
+  }
+}

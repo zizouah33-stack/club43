@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: 'Tajawal', system-ui, sans-serif; color: #F5F7FA; background: #071629; font-synthesis: none; color-scheme: dark; }
+html { direction: rtl; scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; }
+* { box-sizing: border-box; }
+@layer components {
+  .container { @apply mx-auto w-full max-w-7xl px-5 sm:px-8; }
+  .section-space { @apply py-20 sm:py-28; }
+  .hero-grid { background: radial-gradient(circle at 80% 20%, rgba(110,185,255,.18), transparent 28%), linear-gradient(135deg, #f6f4ef 0%, #eef4f8 100%); }
+  .dark .hero-grid { background: radial-gradient(circle at 80% 20%, rgba(30,136,229,.2), transparent 28%), #081a32; }
+  .eyebrow { @apply inline-flex items-center gap-2 text-xs font-extrabold tracking-[.12em] text-blue; }
+  .soft-card { @apply rounded-[1.5rem] border border-white/70 bg-white/75 shadow-[0_14px_40px_rgba(11,31,63,.06)] backdrop-blur-md transition dark:border-white/10 dark:bg-white/[.07] dark:shadow-none; }
+  .glass-card { @apply rounded-3xl border border-white/70 bg-white/70 shadow-[0_14px_40px_rgba(11,31,63,.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/10; }
+  .blue-button { @apply inline-flex items-center gap-2 rounded-full bg-[#1E88E5] px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-blue/20 transition hover:-translate-y-1 hover:bg-[#1976d2]; }
+  .gold-button { @apply inline-flex items-center gap-2 rounded-full bg-[#D4A93C] px-5 py-2.5 text-sm font-extrabold text-[#0B1F3F] transition hover:-translate-y-1 hover:bg-[#e1b94f]; }
+  .soft-button { @apply inline-flex items-center gap-2 rounded-full border border-navy/10 bg-white/70 px-5 py-3 text-sm font-extrabold text-navy transition hover:-translate-y-1 hover:border-blue/40 hover:text-blue dark:border-white/10 dark:bg-white/10 dark:text-white; }
+  .icon-button { @apply inline-flex h-10 w-10 items-center justify-center rounded-full border border-navy/10 bg-white/70 text-navy transition hover:border-blue hover:text-blue dark:border-white/10 dark:bg-white/10 dark:text-white; }
+  .label { @apply block text-sm font-bold text-[#F5F7FA]; }
+  .input { @apply w-full rounded-2xl border border-[#29435F] bg-[#183653] px-4 py-3 text-sm text-[#F5F7FA] outline-none transition placeholder:text-[#A9B8CA] focus:border-[#238BE6] focus:ring-4 focus:ring-[#238BE6]/20 disabled:opacity-60; }
+  .error-text { @apply mt-1 text-xs font-bold text-red-600; }
+}
+select.input option { background: #112A47; color: #F5F7FA; }
+input[type='date']::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+.custom-marker { background: transparent; border: 0; }
+.custom-marker div { display: flex; height: 34px; width: 34px; align-items: center; justify-content: center; border: 3px solid white; border-radius: 999px 999px 999px 0; transform: rotate(-45deg); background: #1e88e5; color: #d4a93c; box-shadow: 0 5px 12px rgba(11,31,63,.3); }
+.custom-marker div::first-letter { transform: rotate(45deg); }
+.leaflet-control-attribution { direction: ltr; }
