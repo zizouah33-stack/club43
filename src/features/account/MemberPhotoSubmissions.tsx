@@ -19,8 +19,14 @@ type Submission = {
 const STATUS_LABELS: Record<string, string> = { pending: 'قيد المراجعة', approved: 'مقبولة', rejected: 'مرفوضة' };
 const STATUS_COLORS: Record<string, string> = { pending: 'bg-[#D9AC45] text-[#071629]', approved: 'bg-[#2E9E5B] text-white', rejected: 'bg-[#E5484D] text-white' };
 
+async function signedUrl(path: string): Promise<string> {
+  const { data } = await supabase.storage.from('member-photos').createSignedUrl(path, 3600);
+  return data?.signedUrl ?? '';
+}
+
 export default function MemberPhotoSubmissions() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [events, setEvents] = useState<GalleryEventOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
@@ -40,8 +46,12 @@ export default function MemberPhotoSubmissions() {
       supabase.from('image_submissions').select('id, title, description, album, storage_path, media_url, status, created_at').order('created_at', { ascending: false }),
       supabase.from('events').select('id, title').order('starts_at', { ascending: false }).eq('published', true),
     ]);
-    setSubmissions((subsResult.data as Submission[] | null) ?? []);
+    const rows = (subsResult.data as Submission[] | null) ?? [];
+    setSubmissions(rows);
     setEvents((eventsResult.data as GalleryEventOption[] | null) ?? []);
+    const urlMap: Record<string, string> = {};
+    await Promise.all(rows.map(async row => { urlMap[row.id] = await signedUrl(row.storage_path); }));
+    setImageUrls(urlMap);
     setLoading(false);
   }, []);
 
@@ -141,7 +151,7 @@ export default function MemberPhotoSubmissions() {
             {submissions.map(sub => (
               <article key={sub.id} className="overflow-hidden rounded-2xl border border-[#29435F] bg-[#112A47]">
                 <div className="relative aspect-[4/3] bg-[#183653]">
-                  <img src={sub.media_url} alt={sub.title} loading="lazy" className="h-full w-full object-cover" />
+                  <img src={imageUrls[sub.id] ?? sub.media_url} alt={sub.title} loading="lazy" className="h-full w-full object-cover" />
                   <span className={`absolute start-3 top-3 rounded-full px-3 py-1 text-xs font-black ${STATUS_COLORS[sub.status] ?? STATUS_COLORS.pending}`}>{STATUS_LABELS[sub.status] ?? sub.status}</span>
                 </div>
                 <div className="p-4">

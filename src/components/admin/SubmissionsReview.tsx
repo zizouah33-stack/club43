@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, Check, Clock, Trash2, X } from 'lucide-react';
+import { ArrowRight, Check, Clock, Loader2, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { removeFile } from '@/lib/imageUpload';
+import { publicUrl, removeFile } from '@/lib/imageUpload';
 import { formatGalleryDate, galleryItemDate } from '@/features/gallery/model';
 
 type Submission = {
@@ -23,9 +23,15 @@ const iconBtn = 'flex h-9 w-9 items-center justify-center rounded-xl border bord
 
 type Filter = 'pending' | 'all';
 
+async function signedMemberUrl(path: string): Promise<string> {
+  const { data } = await supabase.storage.from('member-photos').createSignedUrl(path, 3600);
+  return data?.signedUrl ?? '';
+}
+
 export default function SubmissionsReview() {
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>('pending');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -36,7 +42,11 @@ export default function SubmissionsReview() {
     const query = supabase.from('image_submissions').select('id, title, description, album, storage_path, media_url, status, created_at, event_id').order('created_at', { ascending: false });
     const { data, error } = filter === 'pending' ? await query.eq('status', 'pending') : await query;
     if (error) setNotice({ tone: 'error', text: 'تعذر تحميل الطلبات.' });
-    setSubmissions((data as Submission[] | null) ?? []);
+    const rows = (data as Submission[] | null) ?? [];
+    setSubmissions(rows);
+    const urlMap: Record<string, string> = {};
+    await Promise.all(rows.map(async row => { urlMap[row.id] = await signedMemberUrl(row.storage_path); }));
+    setImageUrls(urlMap);
     setLoading(false);
   }, [filter]);
 
@@ -44,22 +54,39 @@ export default function SubmissionsReview() {
 
   const approve = async (sub: Submission) => {
     setBusyId(sub.id);
+    setNotice(null);
     const { data: session } = await supabase.auth.getSession();
     const reviewerId = session.session?.user?.id ?? null;
+
+    const { data: blobData, error: downloadError } = await supabase.storage.from('member-photos').download(sub.storage_path);
+    if (downloadError || !blobData) {
+      setBusyId(null);
+      setNotice({ tone: 'error', text: 'تعذر تحميل الصورة من التخزين.' });
+      return;
+    }
+
+    const galleryPath = `submissions/${crypto.randomUUID()}.webp`;
+    const { error: uploadError } = await supabase.storage.from('gallery').upload(galleryPath, blobData, { contentType: 'image/webp', upsert: false });
+    if (uploadError) {
+      setBusyId(null);
+      setNotice({ tone: 'error', text: 'تعذر نسخ الصورة إلى المعرض.' });
+      return;
+    }
 
     const { error: insertError } = await supabase.from('gallery_items').insert({
       title: sub.title,
       description: sub.description,
-      media_url: sub.media_url,
-      storage_path: `member-photos/${sub.storage_path.split('/').pop()}`,
+      media_url: publicUrl('gallery', galleryPath),
+      storage_path: galleryPath,
       media_type: 'image',
       album: sub.album,
       event_id: sub.event_id,
       published: true,
     });
     if (insertError) {
+      await removeFile('gallery', galleryPath);
       setBusyId(null);
-      setNotice({ tone: 'error', text: 'تعذر نسخ الصورة إلى المعرض.' });
+      setNotice({ tone: 'error', text: 'تعذر حفظ الصورة في المعرض.' });
       return;
     }
 
@@ -127,7 +154,7 @@ export default function SubmissionsReview() {
               {submissions.map(sub => (
                 <article key={sub.id} className="overflow-hidden rounded-3xl border border-[#29435F] bg-[#112A47]">
                   <div className="relative aspect-[4/3] bg-[#0B1D35]">
-                    <img src={sub.media_url} alt={sub.title} loading="lazy" className="h-full w-full object-cover" />
+                    {imageUrls[sub.id] ? <img src={imageUrls[sub.id]} alt={sub.title} loading="lazy" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center"><Loader2 size={24} className="animate-spin text-[#A9B8CA]" /></div>}
                     <span className={`absolute start-3 top-3 rounded-full px-3 py-1 text-xs font-black ${STATUS_COLORS[sub.status] ?? STATUS_COLORS.pending}`}>{STATUS_LABELS[sub.status] ?? sub.status}</span>
                   </div>
                   <div className="p-4">
