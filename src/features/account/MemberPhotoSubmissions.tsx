@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Clock, ImagePlus, Loader2, Send, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { IMAGE_ACCEPT, IMAGE_MAX_BYTES, removeFile, uploadImage, validateImageFile } from '@/lib/imageUpload';
+import { IMAGE_ACCEPT, removeFile, uploadImage, validateImageFile } from '@/lib/imageUpload';
 import { GALLERY_CATEGORIES, DEFAULT_GALLERY_CATEGORY, formatGalleryDate, galleryItemDate } from '@/features/gallery/model';
 import type { GalleryEventOption } from '@/features/gallery/model';
 
@@ -16,17 +16,8 @@ type Submission = {
   created_at: string;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'قيد المراجعة',
-  approved: 'مقبولة',
-  rejected: 'مرفوضة',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-[#D9AC45] text-[#071629]',
-  approved: 'bg-[#2E9E5B] text-white',
-  rejected: 'bg-[#E5484D] text-white',
-};
+const STATUS_LABELS: Record<string, string> = { pending: 'قيد المراجعة', approved: 'مقبولة', rejected: 'مرفوضة' };
+const STATUS_COLORS: Record<string, string> = { pending: 'bg-[#D9AC45] text-[#071629]', approved: 'bg-[#2E9E5B] text-white', rejected: 'bg-[#E5484D] text-white' };
 
 export default function MemberPhotoSubmissions() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -34,7 +25,7 @@ export default function MemberPhotoSubmissions() {
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [album, setAlbum] = useState(DEFAULT_GALLERY_CATEGORY);
+  const [album, setAlbum] = useState<string>(DEFAULT_GALLERY_CATEGORY);
   const [eventId, setEventId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState('');
@@ -77,61 +68,32 @@ export default function MemberPhotoSubmissions() {
       const userId = session.session?.user?.id;
       if (!userId) throw new Error('الجلسة منتهية.');
 
-      const { path, url } = await uploadImage(file, {
-        bucket: 'member-photos',
-        folder: userId,
-        onProgress: ratio => setProgress(Math.round(ratio * 100)),
-      });
+      const { path, url } = await uploadImage(file, { bucket: 'member-photos', folder: userId, onProgress: ratio => setProgress(Math.round(ratio * 100)) });
 
       const { error: insertError } = await supabase.from('image_submissions').insert({
-        title: title.trim(),
-        description: description.trim(),
-        album,
-        event_id: eventId || null,
-        storage_path: path,
-        media_url: url,
-        status: 'pending',
+        title: title.trim(), description: description.trim(), album, event_id: eventId || null,
+        storage_path: path, media_url: url, status: 'pending',
       });
-
-      if (insertError) {
-        await removeFile('member-photos', path);
-        throw new Error('تعذر حفظ الطلب.');
-      }
+      if (insertError) { await removeFile('member-photos', path); throw new Error('تعذر حفظ الطلب.'); }
 
       setNotice({ tone: 'success', text: 'تم إرسال الصورة للمراجعة. ستظهر في المعرض بعد قبولها.' });
-      setTitle('');
-      setDescription('');
-      setFile(null);
-      setPreview('');
-      setEventId('');
-      setProgress(0);
+      setTitle(''); setDescription(''); setFile(null); setPreview(''); setEventId(''); setProgress(0);
       await load();
     } catch {
       setNotice({ tone: 'error', text: 'تعذر إرسال الصورة. تحقق من الاتصال وحاول مرة أخرى.' });
-    } finally {
-      setUploading(false);
-      setProgress(0);
-    }
+    } finally { setUploading(false); setProgress(0); }
   };
 
   const deleteSubmission = async (sub: Submission) => {
     if (!window.confirm(`حذف الصورة "${sub.title}"؟`)) return;
     const { error: deleteError } = await supabase.from('image_submissions').delete().eq('id', sub.id);
-    if (deleteError) {
-      setNotice({ tone: 'error', text: 'تعذر حذف الطلب.' });
-      return;
-    }
+    if (deleteError) { setNotice({ tone: 'error', text: 'تعذر حذف الطلب.' }); return; }
     await removeFile('member-photos', sub.storage_path);
     setNotice({ tone: 'success', text: 'تم حذف الطلب.' });
     await load();
   };
 
-  const resetForm = () => {
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(null);
-    setPreview('');
-    setError('');
-  };
+  const resetForm = () => { if (preview) URL.revokeObjectURL(preview); setFile(null); setPreview(''); setError(''); };
 
   return (
     <section className="rounded-[1.5rem] border border-[#29435F] bg-[#0B1D35] p-6 sm:p-8">
@@ -152,38 +114,16 @@ export default function MemberPhotoSubmissions() {
         </div>
 
         <div className="space-y-3">
-          <div>
-            <label className="label">عنوان الصورة *</label>
-            <input value={title} onChange={event => setTitle(event.target.value)} disabled={uploading} placeholder="مثال: ورشة البرمجة" className="input mt-2" />
-          </div>
-          <div>
-            <label className="label">وصف مختصر</label>
-            <textarea value={description} onChange={event => setDescription(event.target.value)} disabled={uploading} rows={2} placeholder="وصف الصورة (اختياري)" className="input mt-2" />
-          </div>
+          <div><label className="label">عنوان الصورة *</label><input value={title} onChange={event => setTitle(event.target.value)} disabled={uploading} placeholder="مثال: ورشة البرمجة" className="input mt-2" /></div>
+          <div><label className="label">وصف مختصر</label><textarea value={description} onChange={event => setDescription(event.target.value)} disabled={uploading} rows={2} placeholder="وصف الصورة (اختياري)" className="input mt-2" /></div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="label">التصنيف</label>
-              <select value={album} onChange={event => setAlbum(event.target.value)} disabled={uploading} className="input mt-2">
-                {GALLERY_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">الفعالية (اختياري)</label>
-              <select value={eventId} onChange={event => setEventId(event.target.value)} disabled={uploading} className="input mt-2">
-                <option value="">بدون فعالية</option>
-                {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
-              </select>
-            </div>
+            <div><label className="label">التصنيف</label><select value={album} onChange={event => setAlbum(event.target.value)} disabled={uploading} className="input mt-2">{GALLERY_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
+            <div><label className="label">الفعالية (اختياري)</label><select value={eventId} onChange={event => setEventId(event.target.value)} disabled={uploading} className="input mt-2"><option value="">بدون فعالية</option>{events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}</select></div>
           </div>
-          {uploading && (
-            <div className="h-1.5 overflow-hidden rounded-full bg-[#183653]">
-              <div className="h-full rounded-full bg-[#238BE6] transition-all duration-300" style={{ width: `${progress}%` }} />
-            </div>
-          )}
+          {uploading && <div className="h-1.5 overflow-hidden rounded-full bg-[#183653]"><div className="h-full rounded-full bg-[#238BE6] transition-all duration-300" style={{ width: `${progress}%` }} /></div>}
           {error && <p className="text-xs font-bold text-[#FCA5A5]">{error}</p>}
           <button type="button" onClick={submit} disabled={uploading || !file || !title.trim()} className="blue-button disabled:cursor-not-allowed disabled:opacity-50">
-            {uploading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-            {uploading ? 'جارٍ الإرسال...' : 'إرسال للمراجعة'}
+            {uploading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {uploading ? 'جارٍ الإرسال...' : 'إرسال للمراجعة'}
           </button>
         </div>
       </div>
@@ -206,11 +146,9 @@ export default function MemberPhotoSubmissions() {
                 </div>
                 <div className="p-4">
                   <h4 className="truncate font-bold text-[#F5F7FA]">{sub.title}</h4>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-[#A9B8CA]"><Clock size={12} /> {formatGalleryDate(galleryItemDate({ created_at: sub.created_at }))}</p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[#A9B8CA]"><Clock size={12} /> {formatGalleryDate(galleryItemDate({ created_at: sub.created_at, event_date: null }))}</p>
                   <p className="mt-1 text-xs text-[#A9B8CA]">{sub.album}</p>
-                  <button type="button" onClick={() => deleteSubmission(sub)} disabled={sub.status === 'approved'} className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#F87171] transition hover:text-[#E5484D] disabled:opacity-30">
-                    <Trash2 size={12} /> حذف
-                  </button>
+                  <button type="button" onClick={() => deleteSubmission(sub)} disabled={sub.status === 'approved'} className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#F87171] transition hover:text-[#E5484D] disabled:opacity-30"><Trash2 size={12} /> حذف</button>
                 </div>
               </article>
             ))}

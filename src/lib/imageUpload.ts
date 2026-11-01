@@ -22,17 +22,12 @@ export async function optimizeImage(file: File): Promise<Blob> {
     canvas.width = Math.round(bitmap.width * scale);
     canvas.height = Math.round(bitmap.height * scale);
     const context = canvas.getContext('2d');
-    if (!context) {
-      bitmap.close();
-      return file;
-    }
+    if (!context) { bitmap.close(); return file; }
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close();
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', WEBP_QUALITY));
     return blob && blob.type === 'image/webp' && blob.size < file.size ? blob : file;
-  } catch {
-    return file;
-  }
+  } catch { return file; }
 }
 
 function buildPath(contentType: string, folder?: string): string {
@@ -44,11 +39,7 @@ export function publicUrl(bucket: string, path: string): string {
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 }
 
-type UploadOptions = {
-  bucket: string;
-  folder?: string;
-  onProgress?: (ratio: number) => void;
-};
+type UploadOptions = { bucket: string; folder?: string; onProgress?: (ratio: number) => void; };
 
 export async function uploadImage(file: File, opts: UploadOptions): Promise<{ path: string; url: string }> {
   const { data } = await supabase.auth.getSession();
@@ -67,9 +58,7 @@ export async function uploadImage(file: File, opts: UploadOptions): Promise<{ pa
     request.setRequestHeader('Content-Type', body.type);
     request.setRequestHeader('cache-control', 'public, max-age=31536000');
     request.setRequestHeader('x-upsert', 'false');
-    request.upload.onprogress = event => {
-      if (event.lengthComputable && opts.onProgress) opts.onProgress(event.loaded / event.total);
-    };
+    request.upload.onprogress = event => { if (event.lengthComputable && opts.onProgress) opts.onProgress(event.loaded / event.total); };
     request.onload = () => (request.status >= 200 && request.status < 300 ? resolve() : reject(new Error(`upload ${request.status}`)));
     request.onerror = () => reject(new Error('network'));
     request.send(body);
@@ -83,14 +72,9 @@ export async function removeFile(bucket: string, path: string): Promise<boolean>
   return !error;
 }
 
-const PUBLIC_BUCKETS = ['gallery', 'news', 'team', 'places', 'documents'];
-
 export function bucketForResource(resource: string): string {
   if (resource === 'team_members') return 'team';
   if (resource === 'places') return 'places';
-  if (resource === 'news' || resource === 'activities') return 'news';
   if (resource === 'events') return 'gallery';
   return 'news';
 }
-
-export { PUBLIC_BUCKETS };
