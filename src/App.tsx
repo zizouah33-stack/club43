@@ -41,7 +41,7 @@ const domainLabels: Record<string, string> = { scientific: 'العلمي', techn
 const domainIcons: Record<string, typeof Lightbulb> = { scientific: Lightbulb, technology: Zap, tourism: Compass, culture: BookOpen };
 
 function App() {
-  return <SiteContentProvider><BrowserRouter><ScrollProgress /><div className="min-h-screen bg-sand text-ink transition-colors dark:bg-[#081a32] dark:text-white"><Navbar /><Routes><Route path="*" element={<PageRoutes />} /></Routes><Footer /></div></BrowserRouter></SiteContentProvider>;
+  return <SiteContentProvider><BrowserRouter><ScrollProgress /><div className="min-h-screen bg-[#071629] text-[#F5F7FA]"><Navbar /><Routes><Route path="*" element={<PageRoutes />} /></Routes><Footer /></div></BrowserRouter></SiteContentProvider>;
 }
 
 function PageRoutes() {

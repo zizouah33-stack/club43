@@ -4,7 +4,8 @@
 @tailwind utilities;
 
 :root { font-family: 'Tajawal', system-ui, sans-serif; color: #F5F7FA; background: #071629; font-synthesis: none; color-scheme: dark; }
-html { direction: rtl; scroll-behavior: smooth; }
+html { direction: rtl; scroll-behavior: smooth; color-scheme: dark; }
+@media (prefers-color-scheme: light) { :root { color: #F5F7FA; background: #071629; color-scheme: dark; } }
 body { margin: 0; min-width: 320px; }
 * { box-sizing: border-box; }
 @layer components {
