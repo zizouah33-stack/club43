@@ -77,15 +77,12 @@ export default function MemberPhotoSubmissions() {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
       if (!userId) throw new Error('الجلسة منتهية.');
-
       const { path, url } = await uploadImage(file, { bucket: 'member-photos', folder: userId, onProgress: ratio => setProgress(Math.round(ratio * 100)) });
-
       const { error: insertError } = await supabase.from('image_submissions').insert({
         title: title.trim(), description: description.trim(), album, event_id: eventId || null,
         storage_path: path, media_url: url, status: 'pending',
       });
       if (insertError) { await removeFile('member-photos', path); throw new Error('تعذر حفظ الطلب.'); }
-
       setNotice({ tone: 'success', text: 'تم إرسال الصورة للمراجعة. ستظهر في المعرض بعد قبولها.' });
       setTitle(''); setDescription(''); setFile(null); setPreview(''); setEventId(''); setProgress(0);
       await load();
@@ -109,7 +106,6 @@ export default function MemberPhotoSubmissions() {
     <section className="rounded-[1.5rem] border border-[#29435F] bg-[#0B1D35] p-6 sm:p-8">
       <h2 className="text-lg font-black text-[#F5F7FA]">مشاركة الصور</h2>
       <p className="mt-2 text-sm text-[#A9B8CA]">شارك صورك من أنشطة النادي وفعالياته. تُراجع الإدارة كل صورة قبل نشرها في المعرض.</p>
-
       <div className="mt-6 grid gap-5 sm:grid-cols-[auto_1fr]">
         <div className="flex flex-col items-center gap-3">
           <div className="relative h-32 w-32 overflow-hidden rounded-2xl border border-[#29435F] bg-[#183653]">
@@ -122,7 +118,6 @@ export default function MemberPhotoSubmissions() {
           </label>
           {file && !uploading && <button type="button" onClick={resetForm} className="text-xs font-bold text-[#F87171]">إزالة</button>}
         </div>
-
         <div className="space-y-3">
           <div><label className="label">عنوان الصورة *</label><input value={title} onChange={event => setTitle(event.target.value)} disabled={uploading} placeholder="مثال: ورشة البرمجة" className="input mt-2" /></div>
           <div><label className="label">وصف مختصر</label><textarea value={description} onChange={event => setDescription(event.target.value)} disabled={uploading} rows={2} placeholder="وصف الصورة (اختياري)" className="input mt-2" /></div>
@@ -137,9 +132,7 @@ export default function MemberPhotoSubmissions() {
           </button>
         </div>
       </div>
-
       {notice && <p className={`mt-5 rounded-2xl p-4 text-sm font-bold ${notice.tone === 'success' ? 'bg-[#2E9E5B]/15 text-[#86EFAC]' : 'bg-[#E5484D]/15 text-[#FCA5A5]'}`}>{notice.text}</p>}
-
       <div className="mt-8 border-t border-[#29435F] pt-6">
         <h3 className="mb-4 font-black text-[#F5F7FA]">صورك المرسلة</h3>
         {loading ? (
