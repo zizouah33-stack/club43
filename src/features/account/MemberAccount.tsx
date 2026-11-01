@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import MembershipCard from '@/features/account/MembershipCard';
 import ProfileForm from '@/features/account/ProfileForm';
 import PasswordForm from '@/features/account/PasswordForm';
+import MemberPhotoSubmissions from '@/features/account/MemberPhotoSubmissions';
 import { MEMBER_COLUMNS, type Member } from '@/features/account/types';
 
 export default function MemberAccount() {
@@ -44,17 +45,17 @@ export default function MemberAccount() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-sand dark:bg-navy">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy/15 border-t-blue" role="status" aria-label="جارٍ التحميل" />
+      <main className="flex min-h-screen items-center justify-center bg-[#071629]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#29435F] border-t-[#238BE6]" role="status" aria-label="جارٍ التحميل" />
       </main>
     );
   }
 
   if (error || !member) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-sand px-4 dark:bg-navy">
-        <div className="soft-card max-w-md space-y-4 p-8 text-center">
-          <p className="font-black text-navy dark:text-white">{error || 'لا يمكن الوصول إلى هذا الحساب. تواصل مع الإدارة.'}</p>
+      <main className="flex min-h-screen items-center justify-center bg-[#071629] px-4">
+        <div className="rounded-[1.5rem] border border-[#29435F] bg-[#0B1D35] max-w-md space-y-4 p-8 text-center">
+          <p className="font-black text-[#F5F7FA]">{error || 'لا يمكن الوصول إلى هذا الحساب. تواصل مع الإدارة.'}</p>
           <button type="button" onClick={() => void logout()} className="soft-button">تسجيل الخروج</button>
         </div>
       </main>
@@ -64,12 +65,12 @@ export default function MemberAccount() {
   const firstName = member.full_name.split(' ')[0];
 
   return (
-    <main className="min-h-screen bg-sand px-4 py-8 dark:bg-navy sm:px-8">
+    <main className="min-h-screen bg-[#071629] px-4 py-8 sm:px-8">
       <div className="mx-auto max-w-5xl space-y-8">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-bold text-blue">حسابي</p>
-            <h1 className="text-2xl font-black text-navy dark:text-white">مرحباً {firstName}</h1>
+            <p className="text-sm font-bold text-[#238BE6]">حسابي</p>
+            <h1 className="text-2xl font-black text-[#F5F7FA]">مرحباً {firstName}</h1>
           </div>
           <button type="button" onClick={() => void logout()} className="soft-button min-h-11">
             <LogOut size={16} /> تسجيل الخروج
@@ -83,16 +84,18 @@ export default function MemberAccount() {
           </div>
         </div>
 
-        <section className="soft-card max-w-xl p-6 sm:p-8">
-          <h2 className="mb-6 text-lg font-black text-navy dark:text-white">تغيير كلمة السر</h2>
+        <section className="rounded-[1.5rem] border border-[#29435F] bg-[#0B1D35] max-w-xl p-6 sm:p-8">
+          <h2 className="mb-6 text-lg font-black text-[#F5F7FA]">تغيير كلمة السر</h2>
           <PasswordForm member={member} forced={false} onChanged={() => void load()} />
         </section>
+
+        <MemberPhotoSubmissions />
       </div>
 
       {member.must_change_password && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-navy/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="forced-password-title">
-          <div className="soft-card w-full max-w-md space-y-5 p-6 sm:p-8">
-            <h2 id="forced-password-title" className="text-xl font-black text-navy dark:text-white">تغيير كلمة السر مطلوب</h2>
+          <div className="rounded-[1.5rem] border border-[#29435F] bg-[#0B1D35] w-full max-w-md space-y-5 p-6 sm:p-8">
+            <h2 id="forced-password-title" className="text-xl font-black text-[#F5F7FA]">تغيير كلمة السر مطلوب</h2>
             <PasswordForm member={member} forced onChanged={() => void load()} />
           </div>
         </div>

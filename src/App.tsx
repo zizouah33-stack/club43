@@ -14,6 +14,7 @@ import MemberAccount from '@/features/account/MemberAccount';
 import MembersPage from '@/components/admin/MembersPage';
 import SiteContentPage from '@/components/admin/SiteContentPage';
 import GalleryManager from '@/components/admin/GalleryManager';
+import SubmissionsReview from '@/components/admin/SubmissionsReview';
 import GalleryPage from '@/features/gallery/GalleryPage';
 import StaffAccountsPage from '@/components/admin/StaffAccountsPage';
 import { MembershipForm } from '@/features/membership/MembershipForm';
@@ -69,6 +70,7 @@ function PageRoutes() {
     <Route path="/admin/members" element={<RequireAdmin><MembersPage /></RequireAdmin>} />
     <Route path="/admin/content" element={<RequireAdmin><SiteContentPage /></RequireAdmin>} />
     <Route path="/admin/gallery" element={<RequireAdmin><GalleryManager /></RequireAdmin>} />
+    <Route path="/admin/submissions" element={<RequireAdmin><SubmissionsReview /></RequireAdmin>} />
     <Route path="/admin/account" element={<RequireAdmin><AdminAccountPage /></RequireAdmin>} />
     <Route path="/admin/staff" element={<RequireSuperAdmin><StaffAccountsPage /></RequireSuperAdmin>} />
     <Route path="*" element={<NotFound />} />
@@ -118,7 +120,7 @@ function NewsPage() { const [query, setQuery] = useState(''); const [news, setNe
 
 function Gallery() { return <Interior title="لحظات تبقى معنا." eyebrow="معرض الصور"><GalleryPage /></Interior>; }
 
-function Team() { const [members, setMembers] = useState<Array<{ id: string; name: string; role: string; photo_url: string | null }>>([]); useEffect(() => { supabase.from('team_members').select('*').eq('published', true).order('sort_order').then(({ data }) => setMembers(data ?? [])); }, []); return <Interior title="أشخاص يصنعون الفرق." eyebrow="فريق النادي"><p className="mt-8 max-w-2xl leading-8 text-muted">وراء كل نشاط فريق يؤمن بقيمة الوقت الذي يمنحه الشباب لبعضهم. تعرفوا على فريق نادي المسار.</p><div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{members.map((member) => { const name = member.name; const role = member.role; return <div className="soft-card flex items-center gap-4 p-5" key={name}><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-navy text-xl font-black text-gold">{name.slice(0, 1)}</div><div><h3 className="font-black text-navy dark:text-white">{name}</h3><p className="mt-1 text-xs leading-5 text-muted">{role}</p></div></div>; })}</div></Interior>; }
+function Team() { const [members, setMembers] = useState<Array<{ id: string; name: string; role: string; photo_url: string | null }>>([]); useEffect(() => { supabase.from('team_members').select('*').eq('published', true).order('sort_order').then(({ data }) => setMembers(data ?? [])); }, []); return <Interior title="أشخاص يصنعون الفرق." eyebrow="فريق النادي"><p className="mt-8 max-w-2xl leading-8 text-muted">وراء كل نشاط فريق يؤمن بقيمة الوقت الذي يمنحه الشباب لبعضهم. تعرفوا على فريق نادي المسار.</p><div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{members.map((member) => { const name = member.name; const role = member.role; return <div className="soft-card flex items-center gap-4 p-5" key={member.id}>{member.photo_url ? <img src={member.photo_url} alt={name} className="h-16 w-16 shrink-0 rounded-2xl object-cover" /> : <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-navy text-xl font-black text-gold">{name.slice(0, 1)}</div>}<div><h3 className="font-black text-navy dark:text-white">{name}</h3><p className="mt-1 text-xs leading-5 text-muted">{role}</p></div></div>; })}</div></Interior>; }
 
 function Membership() { return <Interior title="خطوتك الأولى تبدأ هنا." eyebrow="الانخراط"><MembershipForm /></Interior>; }
 
