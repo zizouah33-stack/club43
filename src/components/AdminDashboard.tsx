@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Download, ImagePlus, LogOut, Pencil, Plus, Search, Settings, Trash2, X } from 'lucide-react';
+import { Check, Download, ImagePlus, Loader2, LogOut, Pencil, Plus, Search, Settings, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { bucketForResource } from '@/lib/imageUpload';
+import { bucketForResource, removeFile } from '@/lib/imageUpload';
 import ImageField from '@/components/admin/ImageField';
 
 type ResourceKey = 'news' | 'events' | 'activities' | 'places' | 'team_members' | 'membership_applications' | 'messages' | 'event_registrations';
@@ -10,18 +10,96 @@ type Row = Record<string, unknown> & { id: string };
 type Resource = { key: ResourceKey; label: string; fields: string[]; columns: string[] };
 
 const resources: Resource[] = [
-  { key: 'news', label: 'الأخبار', fields: ['title', 'slug', 'excerpt', 'content', 'category', 'image_url'], columns: ['title', 'category', 'published'] },
-  { key: 'events', label: 'الفعاليات', fields: ['title', 'description', 'location', 'starts_at', 'ends_at', 'image_url'], columns: ['title', 'location', 'starts_at', 'published'] },
-  { key: 'activities', label: 'الأنشطة', fields: ['title', 'domain', 'description', 'activity_date', 'image_url'], columns: ['title', 'domain', 'activity_date', 'published'] },
-  { key: 'places', label: 'الأماكن', fields: ['name', 'description', 'latitude', 'longitude', 'image_url'], columns: ['name', 'latitude', 'longitude', 'published'] },
-  { key: 'team_members', label: 'الفريق', fields: ['name', 'role', 'photo_url', 'sort_order'], columns: ['name', 'role', 'sort_order', 'published'] },
+  { key: 'news', label: 'الأخبار', fields: ['title', 'slug', 'excerpt', 'content', 'category', 'image_url', 'published', 'published_at'], columns: ['title', 'category', 'published'] },
+  { key: 'events', label: 'الفعاليات', fields: ['title', 'description', 'location', 'starts_at', 'ends_at', 'image_url', 'published'], columns: ['title', 'location', 'starts_at', 'published'] },
+  { key: 'activities', label: 'الأنشطة', fields: ['title', 'domain', 'description', 'activity_date', 'image_url', 'published'], columns: ['title', 'domain', 'activity_date', 'published'] },
+  { key: 'places', label: 'الأماكن', fields: ['name', 'description', 'latitude', 'longitude', 'image_url', 'published'], columns: ['name', 'latitude', 'longitude', 'published'] },
+  { key: 'team_members', label: 'الفريق', fields: ['name', 'role', 'photo_url', 'sort_order', 'published'], columns: ['name', 'role', 'sort_order', 'published'] },
   { key: 'membership_applications', label: 'طلبات الانخراط', fields: [], columns: ['full_name', 'email', 'status', 'created_at'] },
   { key: 'messages', label: 'الرسائل', fields: [], columns: ['full_name', 'subject', 'is_read', 'created_at'] },
   { key: 'event_registrations', label: 'تسجيلات الفعاليات', fields: [], columns: ['full_name', 'email', 'phone', 'created_at'] },
 ];
 
 const IMAGE_FIELDS = ['image_url', 'photo_url'];
-const emptyForm: Record<string, string> = { title: '', slug: '', excerpt: '', content: '', category: '', description: '', location: '', starts_at: '', ends_at: '', domain: 'scientific', activity_date: '', name: '', latitude: '', longitude: '', role: '', image_url: '', photo_url: '', sort_order: '0' };
+const TEXTAREA_FIELDS = ['description', 'content', 'excerpt'];
+const DATETIME_FIELDS = ['starts_at', 'ends_at', 'published_at'];
+const DATE_FIELDS = ['activity_date'];
+const NUMBER_FIELDS = ['latitude', 'longitude', 'sort_order'];
+const SELECT_FIELDS: Record<string, { value: string; label: string }[]> = {
+  domain: [
+    { value: 'scientific', label: 'علمي' },
+    { value: 'technology', label: 'تكنولوجيا' },
+    { value: 'tourism', label: 'سياحة' },
+    { value: 'culture', label: 'ثقافة' },
+  ],
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  title: 'العنوان', slug: 'المعرّف (slug)', excerpt: 'مقتطف', content: 'المحتوى', category: 'التصنيف',
+  description: 'الوصف', location: 'المكان', starts_at: 'تاريخ البداية', ends_at: 'تاريخ النهاية',
+  domain: 'المجال', activity_date: 'تاريخ النشاط', name: 'الاسم', latitude: 'خط العرض',
+  longitude: 'خط الطول', role: 'الدور', sort_order: 'ترتيب العرض', published: 'الحالة',
+  published_at: 'تاريخ النشر', image_url: 'صورة الغلاف', photo_url: 'الصورة الشخصية',
+};
+
+const emptyForm: Record<string, string> = {
+  title: '', slug: '', excerpt: '', content: '', category: '', description: '', location: '',
+  starts_at: '', ends_at: '', domain: 'scientific', activity_date: '', name: '', latitude: '',
+  longitude: '', role: '', image_url: '', photo_url: '', sort_order: '0', published: 'false', published_at: '',
+};
+
+function formatDateTimeLocal(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function extractStoragePath(url: string, bucket: string): string | null {
+  if (!url) return null;
+  const patterns = [`/storage/v1/object/public/${bucket}/`, `/storage/v1/object/${bucket}/`];
+  for (const pattern of patterns) {
+    const idx = url.indexOf(pattern);
+    if (idx !== -1) return decodeURIComponent(url.substring(idx + pattern.length));
+  }
+  return null;
+}
+
+function formatError(error: { message?: string; details?: string; hint?: string; code?: string } | null): string {
+  if (!error) return 'حدث خطأ غير متوقع.';
+  const parts = [error.message ?? 'حدث خطأ غير متوقع.'];
+  if (error.details) parts.push(`التفاصيل: ${error.details}`);
+  if (error.hint) parts.push(`تلميح: ${error.hint}`);
+  if (error.code) parts.push(`رمز: ${error.code}`);
+  return parts.join(' • ');
+}
+
+function buildPayload(resource: Resource, form: Record<string, string>): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  for (const field of resource.fields) {
+    const value = form[field] ?? '';
+    if (field === 'published') {
+      payload[field] = value === 'true';
+    } else if (NUMBER_FIELDS.includes(field)) {
+      payload[field] = value === '' ? null : Number(value);
+    } else if (DATETIME_FIELDS.includes(field)) {
+      payload[field] = value === '' ? null : new Date(value).toISOString();
+    } else if (DATE_FIELDS.includes(field)) {
+      payload[field] = value === '' ? null : value;
+    } else if (IMAGE_FIELDS.includes(field)) {
+      payload[field] = value === '' ? null : value;
+    } else {
+      payload[field] = value;
+    }
+  }
+  if (resource.key === 'news') {
+    if (!payload.slug && payload.title) {
+      payload.slug = `news-${crypto.randomUUID().slice(0, 8)}`;
+    }
+    if (payload.published === true && !payload.published_at) {
+      payload.published_at = new Date().toISOString();
+    }
+  }
+  return payload;
+}
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -34,6 +112,7 @@ export default function AdminDashboardPage() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
@@ -44,7 +123,7 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError('');
     const { data, error: queryError } = await supabase.from(active).select('*').order('created_at', { ascending: false }).limit(100);
-    if (queryError) setError('تعذر تحميل البيانات. حاول مرة أخرى.');
+    if (queryError) setError(formatError(queryError));
     setRows((data as Row[] | null) ?? []);
     setLoading(false);
   }, [active]);
@@ -66,33 +145,74 @@ export default function AdminDashboardPage() {
   }, []);
 
   const visibleRows = useMemo(() => rows.filter(row => Object.values(row).some(value => String(value ?? '').toLowerCase().includes(query.toLowerCase()))), [rows, query]);
-  const openCreate = () => { setEditing(null); setForm({ ...emptyForm }); setShowForm(true); };
-  const openEdit = (row: Row) => { setEditing(row); setForm(Object.fromEntries(Object.keys(emptyForm).map(key => [key, String(row[key] ?? '')]))); setShowForm(true); };
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ ...emptyForm, published: active === 'team_members' ? 'true' : 'false' });
+    setShowForm(true);
+  };
+
+  const openEdit = (row: Row) => {
+    setEditing(row);
+    const entries = Object.keys(emptyForm).map(key => {
+      const raw = row[key];
+      if (raw === null || raw === undefined) return [key, ''] as const;
+      if (key === 'published') return [key, String(raw === true)] as const;
+      if (DATETIME_FIELDS.includes(key)) {
+        const d = new Date(String(raw));
+        return [key, isNaN(d.getTime()) ? '' : formatDateTimeLocal(d)] as const;
+      }
+      if (DATE_FIELDS.includes(key)) return [key, String(raw).split('T')[0]] as const;
+      return [key, String(raw)] as const;
+    });
+    setForm(Object.fromEntries(entries));
+    setShowForm(true);
+  };
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
     setError('');
-    const payload: Record<string, unknown> = { ...form };
-    ['latitude', 'longitude', 'sort_order'].forEach(key => { if (payload[key] !== '') payload[key] = Number(payload[key]); });
-    if (active === 'news' && !payload.published_at) payload.published_at = new Date().toISOString();
-    IMAGE_FIELDS.forEach(field => { if (payload[field] === '') payload[field] = null; });
-    const result = editing ? await supabase.from(active).update(payload).eq('id', editing.id) : await supabase.from(active).insert(payload);
-    if (result.error) setError('تعذر حفظ التغييرات. تأكد من الحقول المطلوبة.');
-    else { setShowForm(false); setNotice({ tone: 'success', text: 'تم الحفظ بنجاح.' }); await load(); }
+    const payload = buildPayload(resource, form);
+    const result = editing
+      ? await supabase.from(active).update(payload).eq('id', editing.id)
+      : await supabase.from(active).insert(payload);
+    if (result.error) {
+      setError(formatError(result.error));
+    } else {
+      setShowForm(false);
+      setNotice({ tone: 'success', text: editing ? 'تم تحديث السجل بنجاح.' : 'تم إضافة السجل بنجاح.' });
+      await load();
+    }
     setSaving(false);
   };
 
   const remove = async (row: Row) => {
-    if (!window.confirm('هل تريد حذف هذا السجل؟')) return;
+    if (!window.confirm('هل تريد حذف هذا السجل نهائياً؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+    setError('');
+    setDeleting(row.id);
+    const imageField = IMAGE_FIELDS.find(f => resource.fields.includes(f));
+    const imageUrl = imageField ? String(row[imageField] ?? '') : '';
+    const bucket = bucketForResource(active);
+    const storagePath = imageUrl ? extractStoragePath(imageUrl, bucket) : null;
+
     const { error: deleteError } = await supabase.from(active).delete().eq('id', row.id);
-    if (deleteError) setError('تعذر حذف السجل.');
-    else load();
+    if (deleteError) {
+      setError(formatError(deleteError));
+      setDeleting(null);
+      return;
+    }
+    if (storagePath) {
+      await removeFile(bucket, storagePath);
+    }
+    setNotice({ tone: 'success', text: 'تم حذف السجل بنجاح.' });
+    setDeleting(null);
+    await load();
   };
 
   const updateRow = async (row: Row, values: Record<string, unknown>) => {
     const { error: updateError } = await supabase.from(active).update(values).eq('id', row.id);
-    if (updateError) setError('تعذر تحديث السجل.');
+    if (updateError) setError(formatError(updateError));
     else load();
   };
 
@@ -186,9 +306,9 @@ export default function AdminDashboardPage() {
             </div>
 
             {error && (
-              <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#E5484D]/15 p-4 text-sm font-bold text-[#FCA5A5]">
-                <span>{error}</span>
-                <button onClick={() => setError('')}><X size={16} /></button>
+              <div className="mt-4 flex items-start justify-between gap-4 rounded-2xl bg-[#E5484D]/15 p-4 text-sm font-bold text-[#FCA5A5]">
+                <span className="min-w-0 break-words">{error}</span>
+                <button onClick={() => setError('')} className="shrink-0"><X size={16} /></button>
               </div>
             )}
 
@@ -201,7 +321,7 @@ export default function AdminDashboardPage() {
                 <table className="w-full min-w-[680px] text-right text-sm">
                   <thead>
                     <tr className="border-b border-[#29435F] text-xs text-[#A9B8CA]">
-                      {resource.columns.map(column => <th className="px-3 pb-3 font-bold" key={column}>{column}</th>)}
+                      {resource.columns.map(column => <th className="px-3 pb-3 font-bold" key={column}>{FIELD_LABELS[column] ?? column}</th>)}
                       <th className="pb-3">إجراء</th>
                     </tr>
                   </thead>
@@ -221,7 +341,9 @@ export default function AdminDashboardPage() {
                         ))}
                         <td className="whitespace-nowrap">
                           <button onClick={() => openEdit(row)} className="icon-button ml-1" aria-label="تعديل"><Pencil size={15} /></button>
-                          <button onClick={() => remove(row)} className="icon-button text-[#F87171]" aria-label="حذف"><Trash2 size={15} /></button>
+                          <button onClick={() => remove(row)} disabled={deleting === row.id} className="icon-button ml-1 text-[#F87171] disabled:opacity-40" aria-label="حذف">
+                            {deleting === row.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                          </button>
                           {active === 'membership_applications' && <button onClick={() => updateRow(row, { status: 'approved' })} className="icon-button mr-1 text-[#86EFAC]" aria-label="قبول"><Check size={15} /></button>}
                           {active === 'messages' && <button onClick={() => updateRow(row, { is_read: true })} className="mr-1 text-xs font-bold text-[#238BE6]">قراءة</button>}
                         </td>
@@ -239,10 +361,6 @@ export default function AdminDashboardPage() {
     </main>
   );
 }
-
-const TEXTAREA_FIELDS = ['description', 'content', 'excerpt'];
-const DATETIME_FIELDS = ['starts_at', 'ends_at', 'activity_date'];
-const NUMBER_FIELDS = ['latitude', 'longitude', 'sort_order'];
 
 function FormModal({ resource, form, setForm, saving, editing, onClose, onSave }: {
   resource: Resource;
@@ -268,8 +386,11 @@ function FormModal({ resource, form, setForm, saving, editing, onClose, onSave }
 
         <div className="mt-7 grid gap-4 sm:grid-cols-2">
           {resource.fields.map(field => {
-            const isTextarea = TEXTAREA_FIELDS.includes(field);
             const isImage = IMAGE_FIELDS.includes(field);
+            const isTextarea = TEXTAREA_FIELDS.includes(field);
+            const isPublished = field === 'published';
+            const isSelect = !!SELECT_FIELDS[field];
+
             if (isImage) {
               return (
                 <div className="sm:col-span-2" key={field}>
@@ -278,25 +399,53 @@ function FormModal({ resource, form, setForm, saving, editing, onClose, onSave }
                     folder={resource.key}
                     value={form[field] ?? ''}
                     onChange={url => setForm(previous => ({ ...previous, [field]: url }))}
-                    label={field === 'photo_url' ? 'الصورة الشخصية' : 'صورة الغلاف'}
+                    label={FIELD_LABELS[field] ?? field}
                     disabled={saving}
                   />
                 </div>
               );
             }
-            if (isTextarea) {
+
+            if (isPublished) {
               return (
-                <div className={field === 'content' || field === 'description' ? 'sm:col-span-2' : ''} key={field}>
-                  <label className="label">{field}</label>
-                  <textarea rows={field === 'content' ? 8 : 4} value={form[field] ?? ''} onChange={event => setForm(previous => ({ ...previous, [field]: event.target.value }))} className="input mt-2" />
+                <div key={field}>
+                  <label className="label">{FIELD_LABELS[field] ?? field}</label>
+                  <button
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, published: prev.published === 'true' ? 'false' : 'true' }))}
+                    className={`mt-2 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold transition ${form[field] === 'true' ? 'bg-[#2E9E5B]/20 text-[#86EFAC]' : 'bg-[#29435F] text-[#A9B8CA]'}`}
+                  >
+                    {form[field] === 'true' ? <><Check size={16} /> منشور</> : <><X size={16} /> مسودة</>}
+                  </button>
                 </div>
               );
             }
-            const inputType = DATETIME_FIELDS.includes(field) ? 'datetime-local' : NUMBER_FIELDS.includes(field) ? 'number' : 'text';
+
+            if (isSelect) {
+              return (
+                <div key={field}>
+                  <label className="label">{FIELD_LABELS[field] ?? field}</label>
+                  <select value={form[field] ?? ''} onChange={event => setForm(prev => ({ ...prev, [field]: event.target.value }))} disabled={saving} className="input mt-2">
+                    {SELECT_FIELDS[field].map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                </div>
+              );
+            }
+
+            if (isTextarea) {
+              return (
+                <div className={field === 'content' || field === 'description' ? 'sm:col-span-2' : ''} key={field}>
+                  <label className="label">{FIELD_LABELS[field] ?? field}</label>
+                  <textarea rows={field === 'content' ? 8 : 4} value={form[field] ?? ''} onChange={event => setForm(prev => ({ ...prev, [field]: event.target.value }))} disabled={saving} className="input mt-2" />
+                </div>
+              );
+            }
+
+            const inputType = DATE_FIELDS.includes(field) ? 'date' : DATETIME_FIELDS.includes(field) ? 'datetime-local' : NUMBER_FIELDS.includes(field) ? 'number' : 'text';
             return (
               <div key={field}>
-                <label className="label">{field}</label>
-                <input type={inputType} value={form[field] ?? ''} onChange={event => setForm(previous => ({ ...previous, [field]: event.target.value }))} className="input mt-2" />
+                <label className="label">{FIELD_LABELS[field] ?? field}</label>
+                <input type={inputType} value={form[field] ?? ''} onChange={event => setForm(prev => ({ ...prev, [field]: event.target.value }))} disabled={saving} className="input mt-2" />
               </div>
             );
           })}
