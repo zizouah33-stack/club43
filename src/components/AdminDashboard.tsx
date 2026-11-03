@@ -14,14 +14,14 @@ const resources: Resource[] = [
   { key: 'events', label: 'الفعاليات', fields: ['title', 'description', 'location', 'starts_at', 'ends_at', 'image_url', 'published'], columns: ['title', 'location', 'starts_at', 'published'] },
   { key: 'activities', label: 'الأنشطة', fields: ['title', 'domain', 'description', 'activity_date', 'image_url', 'published'], columns: ['title', 'domain', 'activity_date', 'published'] },
   { key: 'places', label: 'الأماكن', fields: ['name', 'description', 'latitude', 'longitude', 'image_url', 'published'], columns: ['name', 'latitude', 'longitude', 'published'] },
-  { key: 'team_members', label: 'الفريق', fields: ['name', 'role', 'photo_url', 'sort_order', 'published'], columns: ['name', 'role', 'sort_order', 'published'] },
+  { key: 'team_members', label: 'الفريق', fields: ['name', 'role', 'bio', 'photo_url', 'sort_order', 'published'], columns: ['name', 'role', 'sort_order', 'published'] },
   { key: 'membership_applications', label: 'طلبات الانخراط', fields: [], columns: ['full_name', 'email', 'status', 'created_at'] },
   { key: 'messages', label: 'الرسائل', fields: [], columns: ['full_name', 'subject', 'is_read', 'created_at'] },
   { key: 'event_registrations', label: 'تسجيلات الفعاليات', fields: [], columns: ['full_name', 'email', 'phone', 'created_at'] },
 ];
 
 const IMAGE_FIELDS = ['image_url', 'photo_url'];
-const TEXTAREA_FIELDS = ['description', 'content', 'excerpt'];
+const TEXTAREA_FIELDS = ['description', 'content', 'excerpt', 'bio'];
 const DATETIME_FIELDS = ['starts_at', 'ends_at', 'published_at'];
 const DATE_FIELDS = ['activity_date'];
 const NUMBER_FIELDS = ['latitude', 'longitude', 'sort_order'];
@@ -37,14 +37,14 @@ const SELECT_FIELDS: Record<string, { value: string; label: string }[]> = {
 const FIELD_LABELS: Record<string, string> = {
   title: 'العنوان', slug: 'المعرّف (slug)', excerpt: 'مقتطف', content: 'المحتوى', category: 'التصنيف',
   description: 'الوصف', location: 'المكان', starts_at: 'تاريخ البداية', ends_at: 'تاريخ النهاية',
-  domain: 'المجال', activity_date: 'تاريخ النشاط', name: 'الاسم', latitude: 'خط العرض',
+  bio: 'نبذة تعريفية', domain: 'المجال', activity_date: 'تاريخ النشاط', name: 'الاسم', latitude: 'خط العرض',
   longitude: 'خط الطول', role: 'الدور', sort_order: 'ترتيب العرض', published: 'الحالة',
   published_at: 'تاريخ النشر', image_url: 'صورة الغلاف', photo_url: 'الصورة الشخصية',
 };
 
 const emptyForm: Record<string, string> = {
   title: '', slug: '', excerpt: '', content: '', category: '', description: '', location: '',
-  starts_at: '', ends_at: '', domain: 'scientific', activity_date: '', name: '', latitude: '',
+  starts_at: '', ends_at: '', domain: 'scientific', activity_date: '', name: '', bio: '', latitude: '',
   longitude: '', role: '', image_url: '', photo_url: '', sort_order: '0', published: 'false', published_at: '',
 };
 
