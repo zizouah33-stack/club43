@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://elmassarclub.dpdns.org/sitemap.xml
