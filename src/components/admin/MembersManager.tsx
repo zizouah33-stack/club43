@@ -227,6 +227,9 @@ export default function MembersManager() {
                   </td>
                   <td className="p-4">
                     <div className="flex flex-wrap justify-end gap-2">
+                      <button type="button" onClick={() => navigate(`/admin/members?member=${row.id}`)} className="soft-button min-h-9 px-3 text-xs">
+                        الملف الكامل
+                      </button>
                       {actionsFor(row).map((action) => (
                         <button key={action} type="button" disabled={busy} onClick={() => setPending({ row, action })} className="soft-button min-h-9 px-3 text-xs disabled:opacity-60">
                           {SHORT_LABEL[action]}

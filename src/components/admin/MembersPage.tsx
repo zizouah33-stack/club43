@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AdminStatCards from '@/components/admin/AdminStatCards';
 import MembersManager from '@/components/admin/MembersManager';
+import MemberProfilePage from '@/components/admin/MemberProfilePage';
 import LogsPanel from '@/components/admin/LogsPanel';
 
 type Tab = 'members' | 'email' | 'audit';
@@ -14,7 +14,11 @@ const TABS: { key: Tab; label: string }[] = [
 
 export default function MembersPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('members');
+  const [searchParams] = useSearchParams();
+  const memberId = searchParams.get('member');
+  const [tab, setTab] = useState<Tab>((searchParams.get('tab') as Tab) || 'members');
+
+  if (memberId) return <MemberProfilePage memberId={memberId} />;
 
   return (
     <main className="min-h-screen bg-sand px-4 py-8 dark:bg-navy sm:px-8">
@@ -30,16 +34,15 @@ export default function MembersPage() {
 
         <div role="tablist" aria-label="أقسام الأعضاء" className="flex flex-wrap gap-2">
           {TABS.map((item) => (
-            <button
+            <Link
               key={item.key}
-              type="button"
+              to={`/admin/members?tab=${item.key}`}
               role="tab"
               aria-selected={tab === item.key}
-              onClick={() => setTab(item.key)}
-              className={`min-h-11 rounded-full px-4 text-sm font-bold transition ${tab === item.key ? 'bg-navy text-white' : 'bg-white text-navy hover:bg-blue/10 dark:bg-white/10 dark:text-white'}`}
+              className={`min-h-11 rounded-full px-4 text-sm font-bold leading-[44px] transition ${tab === item.key ? 'bg-navy text-white' : 'bg-white text-navy hover:bg-blue/10 dark:bg-white/10 dark:text-white'}`}
             >
               {item.label}
-            </button>
+            </Link>
           ))}
         </div>
 
