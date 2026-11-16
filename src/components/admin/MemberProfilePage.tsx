@@ -41,8 +41,6 @@ type ApplicationRow = {
 
 type AuditRow = { id: string; action: string; details: Record<string, unknown>; created_at: string };
 
-type FieldUpdate = { field: string; label: string; from: string; to: string };
-
 const MISSING = 'لم يتم تقديم هذه المعلومة';
 
 const GENDER_LABEL: Record<string, string> = { male: 'ذكر', female: 'أنثى' };
@@ -51,7 +49,7 @@ const INTEREST_OPTIONS = ['علوم', 'تكنولوجيا', 'سياحة', 'ثق�
 
 type FieldKind = 'text' | 'date' | 'gender' | 'interests' | 'motivation' | 'boolean';
 
-type FieldDef = { field: keyof MemberProfile & string; label: string; kind: FieldKind; dir?: 'ltr' };
+type FieldDef = { field: keyof MemberProfile & string; label: string; kind?: FieldKind; dir?: 'ltr' };
 
 const SECTIONS: { title: string; fields: FieldDef[] }[] = [
   {
@@ -225,9 +223,6 @@ export default function MemberProfilePage({ memberId }: { memberId: string }) {
   }
 
   if (!profile) return null;
-
-  const age = profile.birth_date ? Math.floor((Date.now() - new Date(profile.birth_date).getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
-  const isMinor = age !== null && age < 18;
 
   return (
     <main className="min-h-screen bg-sand px-4 py-8 dark:bg-navy sm:px-8 print:bg-white">

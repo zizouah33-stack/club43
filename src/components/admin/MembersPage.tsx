@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AdminStatCards from '@/components/admin/AdminStatCards';
 import MembersManager from '@/components/admin/MembersManager';
@@ -34,15 +35,16 @@ export default function MembersPage() {
 
         <div role="tablist" aria-label="أقسام الأعضاء" className="flex flex-wrap gap-2">
           {TABS.map((item) => (
-            <Link
+            <button
               key={item.key}
-              to={`/admin/members?tab=${item.key}`}
+              type="button"
               role="tab"
               aria-selected={tab === item.key}
-              className={`min-h-11 rounded-full px-4 text-sm font-bold leading-[44px] transition ${tab === item.key ? 'bg-navy text-white' : 'bg-white text-navy hover:bg-blue/10 dark:bg-white/10 dark:text-white'}`}
+              onClick={() => setTab(item.key)}
+              className={`min-h-11 rounded-full px-4 text-sm font-bold transition ${tab === item.key ? 'bg-navy text-white' : 'bg-white text-navy hover:bg-blue/10 dark:bg-white/10 dark:text-white'}`}
             >
               {item.label}
-            </Link>
+            </button>
           ))}
         </div>
 

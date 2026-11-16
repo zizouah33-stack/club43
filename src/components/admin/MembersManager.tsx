@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Download, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { invokeAdminFunction } from '@/lib/edgeFunctions';
 
@@ -49,6 +50,7 @@ function csvCell(value: string | number | boolean | null | undefined) {
 }
 
 export default function MembersManager() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | MemberRow['status']>('all');
   const [page, setPage] = useState(0);
